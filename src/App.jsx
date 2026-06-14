@@ -54,18 +54,22 @@ function loadJson(key, fallback) {
   }
 }
 
-function defaultScene() {
-  const saved = loadJson("luma-scene", null);
-  if (saved?.stars && saved?.nebulae && saved?.marks) return saved;
-  return {
-    stars: initialStars.map(([x, y, size], index) => ({
+function makeInitialStars() {
+  return initialStars.map(([x, y, size], index) => ({
       id: uid(),
       x,
       y,
       size,
       color: palette[index % palette.length],
       phase: index * 0.71,
-    })),
+    }));
+}
+
+function defaultScene() {
+  const saved = loadJson("luma-scene", null);
+  if (saved?.stars && saved?.nebulae && saved?.marks) return saved;
+  return {
+    stars: makeInitialStars(),
     nebulae: [],
     marks: [],
   };
@@ -232,8 +236,7 @@ export function App() {
 
   const reset = () => {
     if (mode === "cosmos") {
-      const fresh = defaultScene();
-      sceneRef.current.stars = fresh.stars;
+      sceneRef.current.stars = makeInitialStars();
       sceneRef.current.nebulae = [];
       setMessage("宇宙は、何度でも始まる");
     } else {
