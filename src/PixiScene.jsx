@@ -14,6 +14,23 @@ function drawGlow(graphics, x, y, radius, color, alpha) {
   graphics.circle(x, y, Math.max(1, radius * 0.09)).fill({ color: 0xffffff, alpha });
 }
 
+function drawCrispStar(glow, front, x, y, size, color, alpha = 1) {
+  const halo = Math.max(12, size * 5.5);
+  const core = Math.max(1.7, size * 0.58);
+  const ray = Math.max(7, size * 2.8);
+
+  glow.circle(x, y, halo).fill({ color, alpha: 0.13 * alpha });
+  glow.circle(x, y, halo * 0.42).fill({ color, alpha: 0.28 * alpha });
+  front.circle(x, y, core * 1.7).fill({ color, alpha: 0.68 * alpha });
+  front.circle(x, y, core).fill({ color: 0xffffff, alpha });
+  front.moveTo(x - ray, y).lineTo(x + ray, y)
+    .stroke({ color: 0xffffff, alpha: 0.62 * alpha, width: 0.8 });
+  front.moveTo(x, y - ray * 1.35).lineTo(x, y + ray * 1.35)
+    .stroke({ color: 0xffffff, alpha: 0.72 * alpha, width: 0.8 });
+  front.circle(x, y, core * 2.3)
+    .stroke({ color, alpha: 0.5 * alpha, width: 0.7 });
+}
+
 function drawCosmos(back, glow, front, data, pointer, width, height, time) {
   const centerX = width * 0.5;
   const centerY = height * 0.55;
@@ -75,11 +92,20 @@ function drawCosmos(back, glow, front, data, pointer, width, height, time) {
         .lineTo(x, y)
         .stroke({ color: 0x628fff, alpha: 0.17, width: 1 });
     }
-    drawGlow(glow, x, y, star.size * 6, star.color, 0.92);
+    const twinkle = 0.84 + Math.abs(Math.sin(time * 0.0014 + star.phase)) * 0.16;
+    drawCrispStar(glow, front, x, y, star.size, star.color, twinkle);
   });
 
-  drawGlow(glow, centerX + pullX * 0.08, centerY + pullY * 0.08, 92, 0xffaf48, 1);
-  front.circle(centerX + pullX * 0.08, centerY + pullY * 0.08, 7).fill({ color: 0xffffff });
+  const sunX = centerX + pullX * 0.08;
+  const sunY = centerY + pullY * 0.08;
+  glow.circle(sunX, sunY, 92).fill({ color: 0xffaf48, alpha: 0.11 });
+  glow.circle(sunX, sunY, 42).fill({ color: 0xffc06b, alpha: 0.24 });
+  front.circle(sunX, sunY, 8.5).fill({ color: 0xffffff });
+  front.circle(sunX, sunY, 12).stroke({ color: 0xffd795, alpha: 0.65, width: 1 });
+  front.moveTo(sunX - 24, sunY).lineTo(sunX + 24, sunY)
+    .stroke({ color: 0xffe8bd, alpha: 0.42, width: 1 });
+  front.moveTo(sunX, sunY - 28).lineTo(sunX, sunY + 28)
+    .stroke({ color: 0xffe8bd, alpha: 0.46, width: 1 });
 }
 
 function drawLiquid(glow, front, marks, pointer, width, height, time) {

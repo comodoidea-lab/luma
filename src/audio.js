@@ -1,7 +1,14 @@
 import * as Tone from "tone";
 
 export function createAudioEngine() {
-  const master = new Tone.Gain(0.72).toDestination();
+  const limiter = new Tone.Limiter(-1).toDestination();
+  const compressor = new Tone.Compressor({
+    threshold: -18,
+    ratio: 3,
+    attack: 0.02,
+    release: 0.25,
+  }).connect(limiter);
+  const master = new Tone.Gain(0.96).connect(compressor);
 
   const spaceReverb = new Tone.Reverb({ decay: 8.5, wet: 0.74 }).connect(master);
   const spaceDelay = new Tone.FeedbackDelay({
@@ -15,7 +22,7 @@ export function createAudioEngine() {
     envelope: { attack: 0.02, decay: 0.5, sustain: 0.12, release: 4.5 },
     modulationEnvelope: { attack: 0.08, decay: 0.8, sustain: 0.08, release: 3 },
   }).connect(spaceDelay);
-  space.volume.value = -14;
+  space.volume.value = -8;
 
   const waterReverb = new Tone.Reverb({ decay: 10, wet: 0.84 }).connect(master);
   const waterDelay = new Tone.PingPongDelay({
@@ -31,7 +38,7 @@ export function createAudioEngine() {
     modulation: { type: "sine" },
     modulationEnvelope: { attack: 0.01, decay: 0.55, sustain: 0, release: 3.6 },
   }).connect(waterDelay);
-  water.volume.value = -11;
+  water.volume.value = -6;
 
   const gardenReverb = new Tone.Reverb({ decay: 6.5, wet: 0.62 }).connect(master);
   const garden = new Tone.PluckSynth({
@@ -39,7 +46,7 @@ export function createAudioEngine() {
     dampening: 2500,
     resonance: 0.88,
   }).connect(gardenReverb);
-  garden.volume.value = -14;
+  garden.volume.value = -8;
 
   const windGain = new Tone.Gain(0).connect(gardenReverb);
   const windPan = new Tone.Panner(0).connect(windGain);
@@ -78,6 +85,8 @@ export function createAudioEngine() {
         windPan,
         windGain,
         master,
+        compressor,
+        limiter,
       ].forEach((node) => node.dispose());
     },
   };

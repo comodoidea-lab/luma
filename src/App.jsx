@@ -255,7 +255,7 @@ export function App() {
       setMessage("音を閉じた");
     } else {
       const audio = await startAudio(audioRef, true);
-      audio?.master.gain.rampTo(0.72, 0.2);
+      audio?.master.gain.rampTo(0.96, 0.2);
       setMessage("音が、また戻った");
     }
   };

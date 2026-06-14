@@ -17,6 +17,15 @@
 
 final result: passed
 
+## Audio And Star Definition
+
+- Raised the master and mode source levels while adding compression and a -1 dB limiter.
+- Verified audio initialization after a star interaction with no console errors.
+- Added a crisp white core, colored outline, and fine cross rays to each star.
+- Confirmed the adjusted stars remain legible without overpowering the orbit field.
+
+final result: passed
+
 ## Reset And App Icon
 
 - Added three stars to move the cosmos count from 12 to 15.
