@@ -138,26 +138,61 @@ function drawGarden(glow, front, marks, pointer, width, height, time) {
     const y = mark.y * height + pullY * (0.31 + strength * 0.06);
     const age = Math.min(1, (Date.now() - mark.createdAt) / (mark.hold ? 1800 : 1000));
     const growth = 0.3 + age * 0.7;
-    const sway = Math.sin(time * 0.0012 + mark.phase) * (7 + strength * 5) + pullX * 0.18;
-    const stem = (54 + strength * 48) * growth;
-    const flowerX = x + sway;
-    const flowerY = y - stem;
-    const warm = mark.color !== "teal";
-    const color = warm ? 0xffa38b : 0x70eadc;
+    const clusterSize = mark.hold ? 5 : 1;
+    const colorMap = {
+      peach: [0xffa38b, 0xffd4ad],
+      gold: [0xffc65c, 0xffedac],
+      violet: [0xc79aff, 0xead7ff],
+      teal: [0x70eadc, 0xb6fff2],
+      rose: [0xff70a7, 0xffbdd6],
+      sky: [0x79c7ff, 0xc7e9ff],
+      ivory: [0xfff3ce, 0xffffff],
+      coral: [0xff765f, 0xffb79f],
+      warm: [0xffa38b, 0xffdda6],
+    };
+    const [color, highlight] = colorMap[mark.color] ?? colorMap.teal;
 
-    front.moveTo(x, y + 12)
-      .bezierCurveTo(x - 12, y - stem * 0.2, x + sway * 0.4, y - stem * 0.75, flowerX, flowerY)
-      .stroke({ color: warm ? 0xffdda6 : 0x83e9da, alpha: 0.76, width: mark.hold ? 1.5 : 1 });
+    for (let bloom = 0; bloom < clusterSize; bloom += 1) {
+      const clusterAngle = mark.phase + bloom * 2.399;
+      const spread = bloom === 0 ? 0 : 22 + (bloom % 3) * 14;
+      const rootX = x + Math.cos(clusterAngle) * spread;
+      const rootY = y + Math.sin(clusterAngle) * spread * 0.35 + bloom * 3;
+      const bloomStrength = strength * (bloom === 0 ? 1 : 0.62 + (bloom % 2) * 0.12);
+      const sway = Math.sin(time * 0.0012 + mark.phase + bloom) * (7 + bloomStrength * 5) + pullX * 0.18;
+      const stem = (48 + bloomStrength * 50 + bloom * 5) * growth;
+      const flowerX = rootX + sway;
+      const flowerY = rootY - stem;
+      const species = mark.species ?? ["cosmos", "daisy", "bell", "star", "cup"][Math.floor(mark.phase * 10) % 5];
 
-    for (let petal = 0; petal < 8; petal += 1) {
-      const angle = (petal / 8) * Math.PI * 2 + time * 0.00005;
-      const px = flowerX + Math.cos(angle) * (12 + strength * 5);
-      const py = flowerY + Math.sin(angle) * (7 + strength * 3);
-      front.ellipse(px, py, 13 + strength * 4, 5 + strength * 2)
-        .fill({ color, alpha: 0.23 + age * 0.36 });
+      front.moveTo(rootX, rootY + 12)
+        .bezierCurveTo(rootX - 12, rootY - stem * 0.2, rootX + sway * 0.4, rootY - stem * 0.75, flowerX, flowerY)
+        .stroke({ color: highlight, alpha: 0.72, width: bloom === 0 && mark.hold ? 1.5 : 1 });
+
+      const leafY = rootY - stem * 0.48;
+      const leafSide = bloom % 2 ? -1 : 1;
+      front.ellipse(rootX + leafSide * 9, leafY, 11, 3.5)
+        .fill({ color: 0x4aa997, alpha: 0.34 });
+
+      const petals = species === "daisy" ? 12 : species === "star" ? 6 : species === "bell" ? 5 : 8;
+      for (let petal = 0; petal < petals; petal += 1) {
+        const angle = (petal / petals) * Math.PI * 2 + time * 0.00005;
+        const radial = species === "star" ? 14 + bloomStrength * 5 : 11 + bloomStrength * 5;
+        const px = flowerX + Math.cos(angle) * radial;
+        const py = flowerY + Math.sin(angle) * (species === "bell" ? 5 : 7 + bloomStrength * 2);
+        const petalWidth = species === "daisy" ? 10 : species === "star" ? 15 : species === "cup" ? 14 : 12;
+        const petalHeight = species === "bell" ? 8 : species === "daisy" ? 3.5 : 5 + bloomStrength;
+        front.ellipse(px, py + (species === "bell" ? 5 : 0), petalWidth + bloomStrength * 3, petalHeight)
+          .fill({ color, alpha: 0.28 + age * 0.42 });
+      }
+
+      if (species === "cup") {
+        front.ellipse(flowerX, flowerY + 2, 12 + bloomStrength * 4, 8)
+          .stroke({ color: highlight, alpha: 0.62, width: 1 });
+      }
+      glow.circle(flowerX, flowerY, 22 + bloomStrength * 9).fill({ color, alpha: 0.13 });
+      front.circle(flowerX, flowerY, species === "daisy" ? 4.5 : 3 + bloomStrength)
+        .fill({ color: species === "daisy" ? 0xffd85e : 0xfff2c8, alpha: 0.96 });
     }
-    glow.circle(flowerX, flowerY, 24 + strength * 9).fill({ color, alpha: 0.13 });
-    front.circle(flowerX, flowerY, 3 + strength).fill({ color: 0xfff2c8, alpha: 0.96 });
   }
 }
 

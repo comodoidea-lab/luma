@@ -5,12 +5,16 @@ import liquidMemory from "./assets/liquid-memory-art.png";
 import nightGarden from "./assets/night-garden-art.png";
 
 const palette = [0x42a5ff, 0x7f5cff, 0xffc16b, 0x8eeaff, 0xe49bff];
+const flowerColors = ["peach", "gold", "violet", "teal", "rose", "sky", "ivory", "coral"];
+const flowerSpecies = ["cosmos", "daisy", "bell", "star", "cup"];
+const LONG_PRESS_MS = 650;
+const TAP_SLOP = 14;
 const modes = {
   cosmos: {
     label: "星",
     title: "触れて、宇宙を育てる",
-    hint: "長押しで記憶が咲く",
-    detail: "触れて星を生み、なぞって軌道を曲げる",
+    hint: "短押しで星、長押しで星雲",
+    detail: "なぞると宇宙全体が指についてくる",
     unit: "lights",
     accent: "text-sky-200",
   },
@@ -113,9 +117,17 @@ export function App() {
   };
 
   const onPointerDown = (event) => {
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = pointerPosition(event);
-    pointerRef.current = { ...point, startX: point.x, startY: point.y, dragX: 0, dragY: 0 };
+    pointerRef.current = {
+      ...point,
+      startX: point.x,
+      startY: point.y,
+      dragX: 0,
+      dragY: 0,
+      maxDistance: 0,
+    };
     pressStartRef.current = performance.now();
     setActive(true);
     startAudio(audioRef, soundRef.current);
@@ -123,13 +135,17 @@ export function App() {
 
   const onPointerMove = (event) => {
     if (!pointerRef.current) return;
+    event.preventDefault();
     const point = pointerPosition(event);
+    const rawX = point.x - pointerRef.current.startX;
+    const rawY = point.y - pointerRef.current.startY;
     const dragPoint = {
       ...point,
       startX: pointerRef.current.startX,
       startY: pointerRef.current.startY,
-      dragX: Math.max(-210, Math.min(210, (point.x - pointerRef.current.startX) * 0.82)),
-      dragY: Math.max(-160, Math.min(160, (point.y - pointerRef.current.startY) * 0.68)),
+      dragX: Math.max(-210, Math.min(210, rawX * 0.82)),
+      dragY: Math.max(-160, Math.min(160, rawY * 0.68)),
+      maxDistance: Math.max(pointerRef.current.maxDistance, Math.hypot(rawX, rawY)),
     };
     pointerRef.current = dragPoint;
     const now = performance.now();
@@ -141,13 +157,18 @@ export function App() {
 
   const onPointerUp = (event) => {
     if (!pointerRef.current) return;
+    event.preventDefault();
     const point = pointerPosition(event);
     const holdMs = performance.now() - pressStartRef.current;
-    const strength = holdMs >= 720 ? Math.min(2.2, Math.max(0.7, holdMs / 1400)) : 0.55;
+    const wasDrag = pointerRef.current.maxDistance > TAP_SLOP;
+    const isLongPress = holdMs >= LONG_PRESS_MS;
+    const strength = isLongPress ? Math.min(2.2, Math.max(0.7, holdMs / 1400)) : 0.55;
     const normalized = { x: point.x / point.width, y: point.y / point.height };
 
-    if (mode === "cosmos") {
-      if (holdMs >= 720) {
+    if (wasDrag) {
+      setMessage(mode === "cosmos" ? "軌道が、指の余韻を覚えた" : mode === "liquid" ? "水面が、指に引かれた" : "花々を、風が渡った");
+    } else if (mode === "cosmos") {
+      if (isLongPress) {
         sceneRef.current.nebulae.push({
           id: uid(),
           ...normalized,
@@ -170,20 +191,27 @@ export function App() {
         id: uid(),
         ...normalized,
         type: mode,
-        hold: holdMs >= 720,
+        hold: isLongPress,
         strength,
         createdAt: Date.now(),
         phase: Math.random() * Math.PI * 2,
-        color: Math.random() > 0.32 ? "warm" : "teal",
+        color: mode === "garden"
+          ? flowerColors[Math.floor(Math.random() * flowerColors.length)]
+          : "aqua",
+        species: mode === "garden"
+          ? flowerSpecies[Math.floor(Math.random() * flowerSpecies.length)]
+          : undefined,
       });
       setMessage(mode === "liquid"
-        ? holdMs >= 720 ? "深い反響が、水滴になった" : "波紋が記憶をほどく"
-        : holdMs >= 720 ? "風の中で、大きな花がひらいた" : "光の芽が生まれた");
+        ? isLongPress ? "深い反響が、水滴になった" : "波紋が記憶をほどく"
+        : isLongPress ? "風の中に、小さな花畑がひらいた" : "新しい花が咲いた");
     }
 
-    persist();
-    playRelease(audioRef, soundRef.current, mode, point, holdMs);
-    navigator.vibrate?.(holdMs >= 720 ? [25, 30, 55] : 20);
+    if (!wasDrag) {
+      persist();
+      playRelease(audioRef, soundRef.current, mode, point, holdMs);
+      navigator.vibrate?.(isLongPress ? [25, 30, 55] : 20);
+    }
     pointerRef.current = null;
     settleDrag(audioRef);
     setActive(false);
@@ -251,8 +279,10 @@ export function App() {
       <PixiScene mode={mode} dataRef={sceneRef} pointerRef={pointerRef} />
 
       <div
-        className="absolute inset-0 z-[4] touch-none cursor-crosshair"
+        className="interaction-surface absolute inset-0 z-[4] touch-none cursor-crosshair"
         aria-label={modes[mode].title}
+        onContextMenu={(event) => event.preventDefault()}
+        onDragStart={(event) => event.preventDefault()}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
