@@ -17,6 +17,16 @@
 
 final result: passed
 
+## Liquid Ripple Lifecycle
+
+- Verified a new liquid mark renders only expanding ripples during its initial phase.
+- Verified the droplet fades and scales into view after the ripple completes.
+- Verified dragging with two settled droplets produces independent ripples from both droplets.
+- Drag ripples retain a short decaying after-effect after pointer release.
+- Browser console reported no errors or warnings.
+
+final result: passed
+
 ## Audio And Star Definition
 
 - Raised the master and mode source levels while adding compression and a -1 dB limiter.

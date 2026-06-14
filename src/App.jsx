@@ -92,6 +92,7 @@ export function App() {
   const audioRef = useRef(null);
   const soundRef = useRef(true);
   const dragAudioRef = useRef(0);
+  const dragRippleRef = useRef(0);
   const [mode, setMode] = useState("cosmos");
   const [message, setMessage] = useState(modes.cosmos.title);
   const [sound, setSound] = useState(true);
@@ -153,6 +154,18 @@ export function App() {
     };
     pointerRef.current = dragPoint;
     const now = performance.now();
+    if (mode === "liquid" && now - dragRippleRef.current > 110) {
+      const rippleForce = Math.min(1, Math.hypot(dragPoint.dragX, dragPoint.dragY) / 180);
+      const rippleAt = Date.now();
+      sceneRef.current.marks.forEach((mark) => {
+        const settleDuration = mark.hold ? 1900 : 1100;
+        if (mark.type === "liquid" && rippleAt - mark.createdAt >= settleDuration) {
+          mark.rippleAt = rippleAt;
+          mark.rippleForce = rippleForce;
+        }
+      });
+      dragRippleRef.current = now;
+    }
     if (now - dragAudioRef.current > 80) {
       shapeDrag(audioRef, soundRef.current, mode, dragPoint);
       dragAudioRef.current = now;
@@ -207,7 +220,7 @@ export function App() {
           : undefined,
       });
       setMessage(mode === "liquid"
-        ? isLongPress ? "深い反響が、水滴になった" : "波紋が記憶をほどく"
+        ? isLongPress ? "深い波紋のあとに、水滴が残る" : "波紋が、水滴へと結ばれる"
         : isLongPress ? "風の中に、小さな花畑がひらいた" : "新しい花が咲いた");
     }
 

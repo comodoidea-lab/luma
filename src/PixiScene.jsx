@@ -124,22 +124,65 @@ function drawLiquid(glow, front, marks, pointer, width, height, time) {
     const strength = mark.strength ?? 0.55;
     const x = mark.x * width + pullX * (0.5 + strength * 0.09);
     const y = mark.y * height + pullY * (0.4 + strength * 0.06);
-    const age = Math.min(1, (Date.now() - mark.createdAt) / (mark.hold ? 1900 : 1100));
-    const wave = 18 + age * (54 + strength * 36);
-    const alpha = Math.max(0, 0.54 - age * 0.5);
-    for (let ring = 0; ring < (mark.hold ? 5 : 3); ring += 1) {
-      front.ellipse(x, y, wave + ring * 13, (wave + ring * 13) * 0.56).stroke({
-        color: ring % 2 ? 0xaa7dff : 0x72edff,
-        alpha: Math.max(0, alpha - ring * 0.045),
-        width: 1,
-      });
+    const elapsed = Date.now() - mark.createdAt;
+    const settleDuration = mark.hold ? 1900 : 1100;
+    const rippleProgress = Math.min(1, elapsed / settleDuration);
+    const isSettled = elapsed >= settleDuration;
+
+    if (!isSettled) {
+      const wave = 18 + rippleProgress * (54 + strength * 36);
+      const alpha = Math.max(0, 0.58 - rippleProgress * 0.56);
+      for (let ring = 0; ring < (mark.hold ? 5 : 3); ring += 1) {
+        front.ellipse(x, y, wave + ring * 13, (wave + ring * 13) * 0.56).stroke({
+          color: ring % 2 ? 0xaa7dff : 0x72edff,
+          alpha: Math.max(0, alpha - ring * 0.045),
+          width: 1,
+        });
+      }
     }
+
+    if (!isSettled) continue;
+
+    const liveDragForce = Math.min(1, Math.hypot(pullX, pullY) / 180);
+    const rippleMemory = mark.rippleAt
+      ? Math.max(0, 1 - (Date.now() - mark.rippleAt) / 1050)
+      : 0;
+    const rippleForce = Math.max(liveDragForce, (mark.rippleForce ?? 0) * rippleMemory);
+    if (rippleForce > 0.05) {
+      const pulse = (time * (0.00045 + rippleForce * 0.0005) + mark.phase) % 1;
+      for (let ring = 0; ring < 3; ring += 1) {
+        const ringProgress = (pulse + ring / 3) % 1;
+        const radius = 18 + ringProgress * (38 + rippleForce * 52);
+        front.ellipse(x, y, radius, radius * 0.56).stroke({
+          color: ring % 2 ? 0xa985ff : 0x78f1ff,
+          alpha: (1 - ringProgress) * (0.12 + rippleForce * 0.42),
+          width: 0.8 + rippleForce * 0.7,
+        });
+      }
+    }
+
+    const arrival = Math.min(1, (elapsed - settleDuration) / 420);
+    const arrivalEase = 1 - Math.pow(1 - arrival, 3);
     const radius = 7 + strength * 7;
-    glow.circle(x, y, radius * 2.5).fill({ color: 0x62eaff, alpha: 0.15 });
-    front.circle(x, y, radius).fill({ color: 0xb8f7ff, alpha: 0.18 });
-    front.circle(x, y, radius).stroke({ color: 0xc9faff, alpha: 0.78, width: 1 });
-    front.circle(x - radius * 0.28, y - radius * 0.3, Math.max(1.2, radius * 0.16))
-      .fill({ color: 0xffffff, alpha: 0.92 });
+    const visibleRadius = radius * (0.72 + arrivalEase * 0.28);
+    glow.circle(x, y, visibleRadius * 2.5).fill({
+      color: 0x62eaff,
+      alpha: 0.15 * arrivalEase,
+    });
+    front.circle(x, y, visibleRadius).fill({
+      color: 0xb8f7ff,
+      alpha: 0.18 * arrivalEase,
+    });
+    front.circle(x, y, visibleRadius).stroke({
+      color: 0xc9faff,
+      alpha: 0.78 * arrivalEase,
+      width: 1,
+    });
+    front.circle(
+      x - visibleRadius * 0.28,
+      y - visibleRadius * 0.3,
+      Math.max(1.2, visibleRadius * 0.16),
+    ).fill({ color: 0xffffff, alpha: 0.92 * arrivalEase });
   }
 }
 
