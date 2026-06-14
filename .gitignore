@@ -2,5 +2,7 @@ node_modules
 dist
 .vercel
 .npm-cache
+.npmrc
+AGENTS.md
 .DS_Store
 npm-debug.log*
