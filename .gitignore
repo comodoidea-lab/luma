@@ -1,5 +1,6 @@
 node_modules
 dist
 .vercel
+.npm-cache
 .DS_Store
 npm-debug.log*
